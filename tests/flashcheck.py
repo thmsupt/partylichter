@@ -97,6 +97,9 @@ async def main():
                 await pg.wait_for_timeout(ms)
                 await pg.evaluate("clearInterval(window.__sb)")
             allok &= await run_case(pg, f'{n} {nm} – Beat-Dauerfeuer (Mikro)', "__pl.setMode('auto')", 5000, spam_beats)
+        for n in (1, 5):
+            allok &= await run_case(pg, f'{n} {names[n]} – 4/4 mit Zählen, 200 BPM', f"__pl.setMode('takt'); __pl.setBpm(200); __pl.S.showCount=true; __pl.setScene({n}); __pl.setMeter(4)", 6000)
+        await pg.evaluate("__pl.S.meter=0; __pl.S.showCount=false")
         # Tastenspam: Szenen hell/dunkel abwechselnd alle 80 ms
         async def spam_scenes(pg, ms):
             await pg.evaluate("window.__ss=setInterval(()=>__pl.setScene(__pl.S.scene===2?5:2),80)")

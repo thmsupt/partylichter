@@ -7,7 +7,9 @@ Stimmungslichter für den Beamer – für Unterricht, Schulfeste und Partys.
 ## Was die App kann
 
 - 7 Szenen: Farbverlauf, Sternenhimmel, Discokugel, Scheinwerfer, Farb-Puls, Wellen, Lagerfeuer
-- 3 Modi: Takt (tippen oder BPM einstellen), Mikrofon, Automatik
+- 3 Modi: Takt (tippen oder BPM einstellen), Mikrofon mit automatischer Tempo-Erkennung, Automatik
+- Taktart (2/4, 3/4, 4/4, 6/8) mit betonter Eins und großer Zählanzeige
+- Abläufe für Auftritte: Schritt für Schritt per Klicker, als Datei exportier- und importierbar
 - Freeze mit Stopp-Schild und automatischer **Licht-Stopptanz** mit Gong
 - Bedienung über Tasten, Präsentations-Klicker oder eine Leiste, die sich ausblendet
 - Lichteffekte über WebGL: Leuchten (Bloom), Dunst/Rauch, weiche Farbverläufe ohne Stufen
@@ -32,6 +34,10 @@ Keine Datenübertragung, keine Cookies, kein Tracking. Das Mikrofon wird nur lok
 | Leertaste | Takt tippen |
 | ↑ ↓ | Tempo ±1 (Shift ±5) |
 | T / M / A | Takt / Mikrofon / Automatik |
+| K | Taktart wechseln |
+| Z | Zählzeiten anzeigen |
+| E | Dieser Schlag ist die Eins |
+| L | Ablauf starten/stoppen |
 | S | Licht-Stopptanz an/aus |
 | P | Beamer-Bild-Einstellungen |
 | 0 | Testbild |

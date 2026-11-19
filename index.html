@@ -80,7 +80,25 @@
   kbd { display: inline-block; min-width: 1.6em; text-align: center; padding: 2px 8px; border-radius: 6px; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.3); font-family: inherit; font-weight: 700; }
   #help p { font-size: 16px; line-height: 1.45; opacity: .9; }
 
-  #toast { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 50; background: rgba(10,10,22,.88); padding: 10px 18px; border-radius: 12px;
+  #cueEdit { position: fixed; inset: 0; z-index: 45; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,.6); }
+  #cueEdit.on { display: flex; }
+  #cueEdit .card { background: rgba(14,14,28,.97); border-radius: 22px; padding: 24px 28px; width: min(980px, 95vw); max-height: 92vh; overflow: auto; display: flex; flex-direction: column; gap: 12px; }
+  #cueEdit h2 { margin: 0; font-size: 28px; }
+  #ceTable { width: 100%; border-collapse: collapse; font-size: 15px; }
+  #ceTable th { text-align: left; font-weight: 600; opacity: .7; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,.15); }
+  #ceTable td { padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,.06); }
+  #ceTable input[type=text] { width: 100%; min-width: 120px; }
+  #ceTable button { padding: 4px 8px; }
+  select, input[type=text] { font: inherit; padding: 6px 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,.3); background: rgba(0,0,0,.45); color: #fff; }
+  select option { background: #15152a; }
+  #count { position: fixed; top: 4vh; left: 50%; transform: translateX(-50%); display: none; gap: 3vw; z-index: 5; pointer-events: none;
+    font-weight: 900; font-size: min(14vh, 12vw); line-height: 1; font-variant-numeric: tabular-nums; }
+  #count.on { display: flex; }
+  #count span { color: rgba(255,255,255,.28); text-shadow: 0 0 2vh rgba(0,0,0,.7); transition: color .12s, transform .12s; }
+  #count span.now { color: rgba(255,255,255,.95); transform: scale(1.18); }
+  #count span.one { color: rgba(255,214,90,.45); }
+  #count span.one.now { color: #ffd65a; }
+  #toast { position: fixed; top: 16px; right: 16px; z-index: 50; background: rgba(10,10,22,.88); padding: 10px 18px; border-radius: 12px;
     font-size: 18px; opacity: 0; transition: opacity .3s; pointer-events: none; max-width: 90vw; text-align: center; }
   #toast.on { opacity: 1; }
 </style>
@@ -131,6 +149,17 @@
       <span class="t">Empfindlichkeit</span>
       <input type="range" id="sens" min="1" max="10" step="1" aria-label="Mikrofon-Empfindlichkeit">
       <span id="sensVal" class="small">5</span>
+      <span id="micBpm" class="small" style="min-width:16ch">Tempo: höre zu …</span>
+    </div>
+    <div class="group" id="grpMeter">
+      <span class="t">Taktart</span>
+      <button data-meter="0" title="Taste K wechselt">frei</button>
+      <button data-meter="2">2/4</button>
+      <button data-meter="3">3/4</button>
+      <button data-meter="4">4/4</button>
+      <button data-meter="6">6/8</button>
+      <button id="countBtn" title="Taste Z">🔢 Zählen</button>
+      <button id="oneBtn" title="Taste E: dieser Schlag ist die Eins">1️⃣ Eins</button>
     </div>
   </div>
   <div class="row" id="grpPic">
@@ -149,6 +178,17 @@
       <label>Dunst <input type="range" data-pic="haze" min="0" max="2" step="0.1"><span class="val"></span></label>
     </div>
     <button id="testBtn" title="Taste 0">▦ Testbild</button>
+  </div>
+  <div class="row">
+    <div class="group" id="grpCue">
+      <span class="t">Ablauf</span>
+      <select id="cueSel" aria-label="Ablauf wählen"></select>
+      <button id="cueRun" title="Taste L">▶ Start</button>
+      <button id="cuePrev" title="Klicker zurück">◀</button>
+      <span id="cuePos" class="small" style="min-width:14ch"></span>
+      <button id="cueNext" title="Klicker weiter">▶</button>
+      <button id="cueEditBtn">✎ Bearbeiten</button>
+    </div>
   </div>
   <div class="row">
     <div class="group">
@@ -181,6 +221,10 @@
       <tr><td><kbd>Leertaste</kbd></td><td>Takt mittippen (mind. 2×); schaltet auf Modus „Takt“</td></tr>
       <tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>Tempo ±1 BPM (mit <kbd>Shift</kbd> ±5)</td></tr>
       <tr><td><kbd>T</kbd> <kbd>M</kbd> <kbd>A</kbd></td><td>Modus: Takt · Mikrofon · Automatik</td></tr>
+      <tr><td><kbd>K</kbd></td><td>Taktart wechseln: frei · 2/4 · 3/4 · 4/4 · 6/8</td></tr>
+      <tr><td><kbd>Z</kbd></td><td>Zählzeiten groß anzeigen (1 2 3 4)</td></tr>
+      <tr><td><kbd>E</kbd></td><td>„Dieser Schlag ist die Eins“ (zum Nachstellen)</td></tr>
+      <tr><td><kbd>L</kbd></td><td>Ablauf starten/stoppen; im Ablauf schalten <kbd>→</kbd> <kbd>←</kbd> und der Klicker Schritt für Schritt</td></tr>
       <tr><td><kbd>S</kbd></td><td>Licht-Stopptanz an/aus (friert in zufälligen Abständen von selbst ein)</td></tr>
       <tr><td><kbd>P</kbd> / <kbd>0</kbd></td><td>Beamer-Bild-Einstellungen / Testbild</td></tr>
       <tr><td><kbd>V</kbd></td><td>Vollbild an/aus</td></tr>
@@ -189,6 +233,8 @@
     <h3>Beamer-Bild einstellen</h3>
     <p>Über <b>🎛 Beamer-Bild</b> (Taste <kbd>P</kbd>) lässt sich das Bild an Raum und Beamer anpassen. Am schnellsten geht es mit den Voreinstellungen <b>Heller Raum</b> und <b>Dunkler Raum</b>. Das <b>Testbild</b> (Taste <kbd>0</kbd>) hilft beim Feinschliff: Den <b>Schwarzwert</b> so weit erhöhen, bis die Wand bei „0 %“ möglichst dunkel ist, Stufe „10 %“ aber noch erkennbar bleibt. <b>Leuchten</b> und <b>Dunst</b> regeln die Lichteffekte.</p>
     <p>Auf langsamen Geräten senkt Partylichter automatisch Auflösung und Effekte, damit die Bewegung flüssig bleibt.</p>
+    <h3>Abläufe für Auftritte</h3>
+    <p>Unter <b>Ablauf → Bearbeiten</b> legst du Schritte an, z. B. einen pro Stück: Szene, Modus, Tempo und Taktart einstellen, dann „Schritt mit aktueller Einstellung“. Mit <b>▶ Start</b> (oder <kbd>L</kbd>) läuft der Ablauf; der Klicker schaltet weiter und zurück. Abläufe lassen sich als Datei exportieren und auf einem anderen Gerät importieren.</p>
     <h3>Präsentations-Klicker</h3>
     <p>Funktioniert ohne Einrichtung: <b>Weiter/Zurück</b> wechselt die Szene, die Taste <b>Bildschirm schwarz</b> (B oder Punkt) friert ein. Die Start-Taste (F5) lädt die Seite nicht neu.</p>
     <h3>Bedienleiste</h3>
@@ -197,6 +243,9 @@
     <p><b>Takt:</b> Lichter wechseln im eingestellten oder getippten Tempo.<br>
        <b>Mikrofon:</b> Lichter reagieren auf Bass und Lautstärke im Raum (Browser fragt nach Freigabe).<br>
        <b>Automatik:</b> ruhiger Ablauf ohne Musikbezug.</p>
+    <h3>Taktart</h3>
+    <p>Mit einer Taktart leuchtet die <b>Eins</b> stark und wechselt die Farbe, die anderen Schläge pulsieren schwächer (bei 4/4 ist die Drei leicht betont, bei 6/8 die Vier). Beim Tippen ist der erste Tipp nach einer Pause die Eins. Mit <b>Zählen</b> erscheinen die Zählzeiten groß an der Wand.</p>
+    <p>Im Modus <b>Mikrofon</b> erkennt Partylichter nach einigen Sekunden das Tempo und läuft dann gleichmäßig im Takt mit. Wo die Eins liegt, kann es nicht hören – dafür auf der Eins <kbd>E</kbd> drücken.</p>
     <h3>Sicherheit</h3>
     <p>Kein Stroboskop. Lichtwechsel sind fest auf höchstens 3 pro Sekunde begrenzt – auch bei schnellem Tempo oder lauter Musik. Helligkeit ändert sich nur weich, ohne harte Hell-Dunkel-Sprünge. Szenenwechsel werden immer überblendet, auch bei schnellem Tastendrücken. Alle Szenen sind automatisch nach den Blitz-Grenzwerten der WCAG 2.3.1 geprüft.</p>
     <h3>Als App installieren</h3>
@@ -207,6 +256,31 @@
   </div>
 </div>
 
+<div id="cueEdit">
+  <div class="card">
+    <h2>Abläufe bearbeiten</h2>
+    <p class="small">Ein Ablauf ist eine Folge von Schritten, z. B. ein Schritt pro Stück eines Konzerts. Im laufenden Ablauf schaltet der Klicker (oder <kbd>→</kbd> / <kbd>←</kbd>) zum nächsten bzw. vorigen Schritt.</p>
+    <div class="row">
+      <label class="chk">Ablauf <select id="ceSel"></select></label>
+      <label class="chk">Name <input type="text" id="ceName" maxlength="40"></label>
+      <button id="ceNew">＋ Neuer Ablauf</button>
+      <button id="ceDel">🗑 Ablauf löschen</button>
+    </div>
+    <table id="ceTable">
+      <thead><tr><th>#</th><th>Bezeichnung</th><th>Szene</th><th>Modus</th><th>Tempo</th><th>Taktart</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div class="row">
+      <button id="ceAdd" class="primary">＋ Schritt mit aktueller Einstellung</button>
+      <div class="spacer"></div>
+      <button id="ceExport">⬇ Exportieren</button>
+      <label class="btn" style="cursor:pointer">⬆ Importieren<input type="file" id="ceImport" accept=".json,application/json" style="display:none"></label>
+      <button id="ceClose" class="primary">Fertig</button>
+    </div>
+    <p id="ceMsg" class="small"></p>
+  </div>
+</div>
+<div id="count" aria-hidden="true"></div>
 <div id="toast"></div>
 
 <script>
@@ -217,7 +291,7 @@ const $$ = s => Array.from(document.querySelectorAll(s));
 
 /* ---------- Einstellungen ---------- */
 const KEY = 'partylichter.v1';
-const S = { scene: 1, mode: 'takt', bpm: 100, sens: 5, stoppMin: 5, stoppMax: 20, stoppDauer: 4, gong: true };
+const S = { scene: 1, mode: 'takt', bpm: 100, meter: 0, showCount: false, sens: 5, stoppMin: 5, stoppMax: 20, stoppDauer: 4, gong: true };
 try { Object.assign(S, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) {}
 const PIC_PRESETS = {
   standard: { gain: 1, contrast: 1, sat: 1, black: 0, glow: 1, haze: 1 },
@@ -409,7 +483,7 @@ function sTestbild() {
   ctx.fillText('Testbild – Schwarzwert erhöhen, bis 0 % möglichst dunkel ist und 10 % noch sichtbar bleibt.', W / 2, H * 0.82);
   ctx.fillText('Taste 0 = zurück zur Szene', W / 2, H * 0.88);
 }
-function setTestbild(on) { testbild = on; if (frozen && on) setFrozen(false); updateUI(); }
+function setTestbild(on) { testbild = on; if (frozen && on) setFrozen(false); updateUI(); showCount(); }
 
 /* Automatische Qualitätsstufe: misst die Bildrate und passt Auflösung/Effekte an */
 let qAcc = 0, qN = 0, qT0 = 0, qGood = 0, qBefore = 0, qLockUntil = 0;
@@ -438,13 +512,42 @@ let hue = rnd(0, 360), hueTarget = hue;
 let animT = 0;
 let rings = [];
 
-function triggerBeat(now, strength = 1) {
+function triggerBeat(now, strength = 1, colorStep = true) {
   if (now - lastBeat < MIN_GAP) return;
   lastBeat = now;
   env = Math.max(env, strength);
   beatCount++;
-  hueTarget += 40;                 // kleiner Farbschritt, keine Komplementär-Sprünge
-  if (S.scene === 5) rings.push({ t: now });
+  if (colorStep) hueTarget += 40;  // kleiner Farbschritt, keine Komplementär-Sprünge
+  if (S.scene === 5) rings.push({ t: now, s: strength });
+}
+
+/* Taktart: Betonung je Zählzeit. Die Eins bekommt vollen Puls und einen Farbwechsel,
+   die übrigen Schläge nur einen schwächeren Puls. Gezählt wird jeder Schlag – auch wenn
+   die Sicherheitsgrenze (3/s) bei sehr schnellem Tempo einzelne Lichtimpulse auslässt. */
+const METERS = { 2: [1, 0.45], 3: [1, 0.45, 0.45], 4: [1, 0.45, 0.65, 0.45], 6: [1, 0.4, 0.4, 0.7, 0.4, 0.4] };
+let beatIdx = 0, lastMusical = -1e9;
+function musicalBeat(now) {
+  const acc = METERS[S.meter];
+  beatIdx = acc ? (beatIdx % acc.length) + 1 : 1;
+  lastMusical = now;
+  triggerBeat(now, acc ? acc[beatIdx - 1] : 1, !acc || beatIdx === 1);
+  showCount();
+}
+function setOne() {                 // „Dieser Schlag ist die Eins“
+  const period = S.mode === 'mikro' && micPeriod ? micPeriod : 60000 / S.bpm;
+  beatIdx = performance.now() - lastMusical < period / 2 ? 1 : 0;
+  showCount();
+}
+function setMeter(m) { S.meter = METERS[m] ? m : 0; beatIdx = 0; save(); updateUI(); showCount(); }
+function showCount() {
+  const el = $('#count'), acc = METERS[S.meter];
+  const on = S.showCount && acc && S.mode !== 'auto' && !frozen && !testbild && started;
+  el.classList.toggle('on', !!on);
+  if (!on) return;
+  if (el.childElementCount !== acc.length) {
+    el.innerHTML = acc.map((_, i) => `<span class="${i === 0 ? 'one' : ''}">${i + 1}</span>`).join('');
+  }
+  [...el.children].forEach((c, i) => c.classList.toggle('now', i + 1 === beatIdx));
 }
 
 let nextBeat = 0;
@@ -452,7 +555,7 @@ function taktTick(now) {
   const iv = 60000 / S.bpm;
   if (!nextBeat || now - nextBeat > 2000) nextBeat = now;
   if (now >= nextBeat) {
-    triggerBeat(now);
+    musicalBeat(now);
     while (nextBeat <= now) nextBeat += iv;
   }
 }
@@ -468,13 +571,14 @@ function tap() {
   const now = performance.now();
   if (S.mode !== 'takt') setMode('takt');
   if (taps.length && now - taps[taps.length - 1] > 2000) taps = [];
+  if (!taps.length) beatIdx = 0;   // erster Tipp nach einer Pause = die Eins
   taps.push(now);
   if (taps.length > 6) taps.shift();
   if (taps.length >= 2) {
     const iv = (taps[taps.length - 1] - taps[0]) / (taps.length - 1);
     setBpm(Math.round(60000 / iv), true);
   }
-  triggerBeat(now);
+  musicalBeat(now);
   nextBeat = now + 60000 / S.bpm;
 }
 
@@ -497,7 +601,7 @@ async function startMic() {
     analyser.smoothingTimeConstant = 0.3;
     src.connect(analyser);
     fbuf = new Uint8Array(analyser.frequencyBinCount);
-    energyAvg = 0; level = 0;
+    level = 0; resetTempo();
     return true;
   } catch (e) { stopMic(); return false; }
 }
@@ -505,22 +609,78 @@ function stopMic() {
   if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
   analyser = null;
 }
+/* Tempo-Erkennung:
+   1. Einsätze (Onsets) erkennen: plötzlicher Anstieg im Spektrum (Spectral Flux), Bass doppelt gewichtet.
+   2. Tempo schätzen: Abstände zwischen Einsätzen der letzten 8 s als Histogramm (80–160 BPM, Oktaven gefaltet).
+   3. Eine Takt-Uhr läuft im erkannten Tempo und wird bei jedem Einsatz sanft nachgestellt.
+   Solange das Tempo unsicher ist, reagieren die Lichter direkt auf die Einsätze. */
+let prevSpec = null, fluxHist = [], onsets = [], lastOnset = 0;
+let detBpm = 0, detConf = 0, detFar = 0, micPeriod = 0, micNext = 0, micInfoT = 0;
+function resetTempo() { prevSpec = null; fluxHist = []; onsets = []; detBpm = detConf = detFar = micPeriod = micNext = 0; }
+function estimateTempo() {
+  const n = onsets.length;
+  if (n < 6) { detConf = 0; return; }
+  const hist = new Float32Array(81);                 // 80 … 160 BPM
+  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+    const ioi = onsets[j] - onsets[i];
+    if (ioi > 1250) break;
+    if (ioi < 180) continue;
+    let b = 60000 / ioi, fold = 0;
+    while (b < 80) { b *= 2; fold++; }
+    while (b >= 160) { b /= 2; fold++; }
+    const w = 1 / (1 + fold * 0.6);
+    for (let d = -3; d <= 3; d++) { const k = Math.round(b) - 80 + d; if (k >= 0 && k <= 80) hist[k] += w * Math.exp(-d * d / 2.5); }
+  }
+  let best = 0, sum = 0; for (let k = 0; k <= 80; k++) { sum += hist[k]; if (hist[k] > hist[best]) best = k; }
+  if (!sum) { detConf = 0; return; }
+  // Feinwert: Schwerpunkt um das Maximum
+  let ws = 0, wb = 0; for (let d = -2; d <= 2; d++) { const k = best + d; if (k >= 0 && k <= 80) { ws += hist[k]; wb += hist[k] * (k + 80); } }
+  const est = wb / ws;
+  detConf = Math.min(1, (hist[best] / sum) * 6);
+  if (!detBpm || Math.abs(est - detBpm) < 4) { detBpm = detBpm ? detBpm * 0.8 + est * 0.2 : est; detFar = 0; }
+  else if (++detFar >= 3) { detBpm = est; detFar = 0; }
+  micPeriod = 60000 / detBpm;
+}
 function micTick(now, dt) {
   if (!analyser) return;
   analyser.getByteFrequencyData(fbuf);
   const binHz = actx.sampleRate / analyser.fftSize;
-  const lowEnd = Math.max(2, Math.round(160 / binHz));
-  let low = 0; for (let i = 1; i <= lowEnd; i++) low += fbuf[i];
-  low /= lowEnd * 255;
-  const half = fbuf.length >> 1;
-  let all = 0; for (let i = 1; i < half; i++) all += fbuf[i];
-  all /= (half - 1) * 255;
+  const lowEnd = Math.max(2, Math.round(180 / binHz));
+  const hi = Math.min(fbuf.length - 1, Math.round(4000 / binHz));
+  if (!prevSpec) prevSpec = new Uint8Array(fbuf.length);
+  let flux = 0, all = 0;
+  for (let i = 1; i <= hi; i++) { const d = fbuf[i] - prevSpec[i]; if (d > 0) flux += i <= lowEnd ? d * 2 : d; all += fbuf[i]; }
+  prevSpec.set(fbuf);
   const gain = 0.5 + S.sens * 0.25;
-  low *= gain; all *= gain;
-  energyAvg += (low - energyAvg) * Math.min(1, dt / 600);
+  flux = flux / (hi * 255) * gain; all = all / (hi * 255) * gain;
   level += (Math.min(1, all * 1.6) - level) * Math.min(1, dt / 250);
-  const thr = 1.38 - S.sens * 0.02;
-  if (low > energyAvg * thr && low > 0.12) triggerBeat(now, Math.min(1, 0.5 + low));
+  fluxHist.push(flux); if (fluxHist.length > 45) fluxHist.shift();
+  let mean = 0; for (const f of fluxHist) mean += f; mean /= fluxHist.length;
+  let sd = 0; for (const f of fluxHist) sd += (f - mean) * (f - mean); sd = Math.sqrt(sd / fluxHist.length);
+  const k = 2.0 - S.sens * 0.1;
+  const isOnset = fluxHist.length > 10 && flux > mean + k * sd && flux > 0.006 && now - lastOnset > 110;
+  if (isOnset) {
+    lastOnset = now; onsets.push(now);
+    while (onsets.length && now - onsets[0] > 8000) onsets.shift();
+    estimateTempo();
+    if (micPeriod && micNext) {                      // Phase nachstellen
+      const prev = micNext - micPeriod;
+      const e = Math.abs(now - prev) < Math.abs(now - micNext) ? now - prev : now - micNext;
+      if (Math.abs(e) < micPeriod * 0.22) micNext += e * 0.3;
+    }
+  }
+  if (now - onsets[onsets.length - 1] > 3000) { detConf *= Math.exp(-dt / 1500); }
+  if (detConf > 0.3 && micPeriod) {
+    if (!micNext || now - micNext > 2000) micNext = now;
+    if (now >= micNext) { musicalBeat(now); while (micNext <= now) micNext += micPeriod; }
+  } else {
+    micNext = 0;
+    if (isOnset) triggerBeat(now, Math.min(1, 0.5 + flux * 15));
+  }
+  if (now - micInfoT > 500) {
+    micInfoT = now;
+    $('#micBpm').textContent = detConf > 0.3 && detBpm ? `Tempo erkannt: ${Math.round(detBpm)} BPM` : 'Tempo: höre zu …';
+  }
 }
 
 function playGong() {
@@ -758,7 +918,7 @@ let frozen = false, stoppOn = false, nextStop = 0, resumeAt = 0;
 function setFrozen(on) {
   frozen = on;
   $('#freeze').classList.toggle('on', on);
-  updateUI();
+  updateUI(); showCount();
 }
 let lastFreezeToggle = -1e9;
 function toggleFreeze() {
@@ -798,8 +958,8 @@ async function setMode(m) {
     }
   } else stopMic();
   S.mode = m; if (m !== 'mikro') save(); else { const k = S.mode; S.mode = 'takt'; save(); S.mode = k; }
-  nextBeat = 0; nextAuto = 0;
-  updateUI();
+  nextBeat = 0; nextAuto = 0; beatIdx = 0;
+  updateUI(); showCount();
 }
 function setBpm(v, fromTap) {
   S.bpm = Math.max(40, Math.min(200, Math.round(v)));
@@ -851,6 +1011,9 @@ $('#picBtn').addEventListener('click', () => togglePic());
 $('#testBtn').addEventListener('click', () => setTestbild(!testbild));
 $$('[data-pic]').forEach(el => el.addEventListener('input', () => { S.pic[el.dataset.pic] = +el.value; save(); updateUI(); }));
 $$('[data-preset]').forEach(b => b.addEventListener('click', () => { S.pic = Object.assign({}, PIC_PRESETS[b.dataset.preset]); save(); updateUI(); }));
+$$('[data-meter]').forEach(b => b.addEventListener('click', () => setMeter(+b.dataset.meter)));
+$('#countBtn').addEventListener('click', () => { S.showCount = !S.showCount; save(); updateUI(); showCount(); });
+$('#oneBtn').addEventListener('click', setOne);
 $('#gong').addEventListener('change', e => { S.gong = e.target.checked; save(); });
 $('#fsBtn').addEventListener('click', toggleFullscreen);
 $('#helpBtn').addEventListener('click', () => showHelp(true));
@@ -866,6 +1029,10 @@ function updateUI() {
   $('#bpmRange').value = S.bpm;
   $('#grpTakt').style.display = S.mode === 'takt' ? '' : 'none';
   $('#grpMic').style.display = S.mode === 'mikro' ? '' : 'none';
+  $('#grpMeter').style.display = S.mode === 'auto' ? 'none' : '';
+  $$('[data-meter]').forEach(b => b.classList.toggle('active', +b.dataset.meter === (S.meter || 0)));
+  $('#countBtn').classList.toggle('active', !!S.showCount);
+  $('#countBtn').disabled = $('#oneBtn').disabled = !S.meter;
   $('#sens').value = S.sens; $('#sensVal').textContent = S.sens;
   $('#stoppBtn').textContent = '✋ Licht-Stopptanz: ' + (stoppOn ? 'an' : 'aus');
   $('#stoppBtn').classList.toggle('active', stoppOn);
@@ -882,6 +1049,140 @@ function toast(msg, ms = 2200) {
   clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('on'), ms);
 }
 
+
+/* ---------- Abläufe (Szenenfolgen für Auftritte) ---------- */
+const CKEY = 'partylichter.ablaeufe.v1';
+const MODE_LBL = { takt: 'Takt', mikro: 'Mikrofon', auto: 'Automatik' };
+const METER_LBL = { 0: 'frei', 2: '2/4', 3: '3/4', 4: '4/4', 6: '6/8' };
+let CU = { list: [], sel: 0 };
+try { const d = JSON.parse(localStorage.getItem(CKEY) || 'null'); if (d && Array.isArray(d.list)) CU = d; } catch (e) {}
+if (!CU.list.length) CU.list.push({ name: 'Mein Ablauf', steps: [] });
+CU.sel = Math.min(Math.max(0, CU.sel | 0), CU.list.length - 1);
+function saveCues() { try { localStorage.setItem(CKEY, JSON.stringify(CU)); } catch (e) {} }
+const cueRun = { on: false, i: 0 };
+const curList = () => CU.list[CU.sel];
+function cleanStep(st) {
+  return {
+    label: String(st.label || '').slice(0, 60),
+    scene: Math.min(7, Math.max(1, st.scene | 0 || 1)),
+    mode: MODE_LBL[st.mode] ? st.mode : 'takt',
+    bpm: Math.min(200, Math.max(40, st.bpm | 0 || 100)),
+    meter: METER_LBL[st.meter] ? +st.meter : 0,
+  };
+}
+function applyStep(i) {
+  const L = curList(); if (!L || !L.steps.length) return;
+  cueRun.i = Math.min(Math.max(0, i), L.steps.length - 1);
+  const st = L.steps[cueRun.i];
+  if (frozen && !stoppOn) setFrozen(false);
+  setScene(st.scene); setMeter(st.meter); setBpm(st.bpm);
+  if (st.mode !== S.mode) setMode(st.mode);
+  toast(`${cueRun.i + 1}/${L.steps.length}` + (st.label ? ' · ' + st.label : ''), 2500);
+  updateCueUI();
+}
+function startCue(on) {
+  const L = curList();
+  if (on && (!L || !L.steps.length)) { toast('Dieser Ablauf hat noch keine Schritte – über „Bearbeiten“ anlegen.', 3500); on = false; }
+  cueRun.on = on;
+  if (on) applyStep(0); else { toast('Ablauf beendet'); updateCueUI(); }
+}
+function cueStep(d) { if (cueRun.on) applyStep(cueRun.i + d); }
+function updateCueUI() {
+  const sel = $('#cueSel');
+  sel.innerHTML = CU.list.map((l, i) => `<option value="${i}">${escapeHtml(l.name || 'Ablauf ' + (i + 1))}</option>`).join('');
+  sel.value = CU.sel; sel.disabled = cueRun.on;
+  const L = curList(), n = L ? L.steps.length : 0;
+  $('#cueRun').textContent = cueRun.on ? '■ Stopp' : '▶ Start';
+  $('#cueRun').classList.toggle('active', cueRun.on);
+  $('#cuePrev').disabled = $('#cueNext').disabled = !cueRun.on;
+  const st = cueRun.on && L.steps[cueRun.i];
+  $('#cuePos').textContent = cueRun.on ? `${cueRun.i + 1}/${n}${st && st.label ? ' · ' + st.label : ''}` : `${n} Schritt${n === 1 ? '' : 'e'}`;
+}
+function escapeHtml(t) { return String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+/* Editor */
+function openCueEdit(on) { $('#cueEdit').classList.toggle('on', on); if (on) renderCueEdit(); else { saveCues(); updateCueUI(); } }
+function renderCueEdit() {
+  const L = curList();
+  $('#ceSel').innerHTML = CU.list.map((l, i) => `<option value="${i}">${escapeHtml(l.name || 'Ablauf ' + (i + 1))}</option>`).join('');
+  $('#ceSel').value = CU.sel;
+  $('#ceName').value = L.name;
+  const opt = (obj, v) => Object.entries(obj).map(([k, t]) => `<option value="${k}"${String(k) === String(v) ? ' selected' : ''}>${t}</option>`).join('');
+  const sceneOpts = Object.fromEntries(SCENES.filter(x => x.n <= 7).map(x => [x.n, x.ico + ' ' + x.lbl]));
+  $('#ceTable tbody').innerHTML = L.steps.length ? L.steps.map((st, i) => `
+    <tr data-i="${i}">
+      <td>${i + 1}</td>
+      <td><input type="text" data-f="label" value="${escapeHtml(st.label)}" placeholder="z. B. Stückname" maxlength="60"></td>
+      <td><select data-f="scene">${opt(sceneOpts, st.scene)}</select></td>
+      <td><select data-f="mode">${opt(MODE_LBL, st.mode)}</select></td>
+      <td><input type="number" data-f="bpm" min="40" max="200" value="${st.bpm}"></td>
+      <td><select data-f="meter">${opt(METER_LBL, st.meter)}</select></td>
+      <td style="white-space:nowrap"><button data-a="up" title="nach oben">↑</button> <button data-a="down" title="nach unten">↓</button> <button data-a="del" title="Schritt löschen">✕</button></td>
+    </tr>`).join('') : '<tr><td colspan="7" class="small" style="padding:14px 6px">Noch keine Schritte. Stelle Szene, Modus, Tempo und Taktart ein und klicke auf „Schritt mit aktueller Einstellung“.</td></tr>';
+  $('#ceDel').disabled = CU.list.length < 2;
+}
+$('#ceTable').addEventListener('change', e => {
+  const tr = e.target.closest('tr[data-i]'); if (!tr) return;
+  const st = curList().steps[+tr.dataset.i], f = e.target.dataset.f;
+  if (f === 'label') st.label = e.target.value.slice(0, 60);
+  else if (f === 'mode') st.mode = e.target.value;
+  else st[f] = +e.target.value;
+  curList().steps[+tr.dataset.i] = cleanStep(st);
+  saveCues(); if (f === 'bpm') renderCueEdit();
+});
+$('#ceTable').addEventListener('click', e => {
+  const b = e.target.closest('button[data-a]'); if (!b) return;
+  const i = +b.closest('tr').dataset.i, steps = curList().steps;
+  if (b.dataset.a === 'del') steps.splice(i, 1);
+  if (b.dataset.a === 'up' && i > 0) [steps[i - 1], steps[i]] = [steps[i], steps[i - 1]];
+  if (b.dataset.a === 'down' && i < steps.length - 1) [steps[i + 1], steps[i]] = [steps[i], steps[i + 1]];
+  saveCues(); renderCueEdit();
+});
+$('#ceAdd').addEventListener('click', () => {
+  curList().steps.push(cleanStep({ label: '', scene: S.scene, mode: S.mode, bpm: S.bpm, meter: S.meter }));
+  saveCues(); renderCueEdit();
+  const inputs = $$('#ceTable input[data-f=label]'); if (inputs.length) inputs[inputs.length - 1].focus();
+});
+$('#ceSel').addEventListener('change', e => { CU.sel = +e.target.value; cueRun.on = false; saveCues(); renderCueEdit(); });
+$('#ceName').addEventListener('input', e => { curList().name = e.target.value.slice(0, 40); saveCues(); });
+$('#ceNew').addEventListener('click', () => { CU.list.push({ name: 'Ablauf ' + (CU.list.length + 1), steps: [] }); CU.sel = CU.list.length - 1; cueRun.on = false; saveCues(); renderCueEdit(); $('#ceName').select(); });
+$('#ceDel').addEventListener('click', () => {
+  if (CU.list.length < 2) return;
+  const b = $('#ceDel');
+  if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = '🗑 Wirklich löschen?'; setTimeout(() => { b.dataset.sure = ''; b.textContent = '🗑 Ablauf löschen'; }, 3000); return; }
+  b.dataset.sure = ''; b.textContent = '🗑 Ablauf löschen';
+  CU.list.splice(CU.sel, 1); CU.sel = Math.max(0, CU.sel - 1); cueRun.on = false; saveCues(); renderCueEdit();
+});
+$('#ceClose').addEventListener('click', () => openCueEdit(false));
+$('#ceExport').addEventListener('click', () => {
+  const L = curList();
+  const data = JSON.stringify({ app: 'Partylichter', version: 1, ablauf: L }, null, 2);
+  try {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([data], { type: 'application/json' }));
+    a.download = 'Partylichter_Ablauf_' + (L.name || 'Ablauf').replace(/[^\wäöüÄÖÜß-]+/g, '_') + '.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    $('#ceMsg').textContent = 'Datei gespeichert – zum Weitergeben oder als Sicherung.';
+  } catch (e) { $('#ceMsg').textContent = 'Export ist hier nicht möglich. Bitte die App unter thmsupt.github.io/partylichter öffnen.'; }
+});
+$('#ceImport').addEventListener('change', async e => {
+  const f = e.target.files && e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  try {
+    const d = JSON.parse(await f.text());
+    const L = d && d.ablauf;
+    if (!L || !Array.isArray(L.steps)) throw new Error('kein Ablauf');
+    CU.list.push({ name: String(L.name || 'Importiert').slice(0, 40), steps: L.steps.slice(0, 200).map(cleanStep) });
+    CU.sel = CU.list.length - 1; cueRun.on = false; saveCues(); renderCueEdit();
+    $('#ceMsg').textContent = `„${curList().name}“ importiert (${curList().steps.length} Schritte).`;
+  } catch (err) { $('#ceMsg').textContent = 'Diese Datei ist kein Partylichter-Ablauf.'; }
+});
+$('#cueSel').addEventListener('change', e => { CU.sel = +e.target.value; saveCues(); updateCueUI(); });
+$('#cueRun').addEventListener('click', () => startCue(!cueRun.on));
+$('#cuePrev').addEventListener('click', () => cueStep(-1));
+$('#cueNext').addEventListener('click', () => cueStep(1));
+$('#cueEditBtn').addEventListener('click', () => openCueEdit(true));
+
 /* Leiste ein-/ausblenden */
 const bar = $('#bar');
 let hideTimer = 0, overBar = false, started = false;
@@ -893,7 +1194,7 @@ function showBar() {
 }
 function maybeHide() {
   const fe = document.activeElement;
-  if (overBar || (fe && bar.contains(fe) && fe.tagName === 'INPUT' && fe.type === 'number')) { hideTimer = setTimeout(maybeHide, 1500); return; }
+  if (overBar || (fe && bar.contains(fe) && (fe.tagName === 'SELECT' || (fe.tagName === 'INPUT' && fe.type === 'number')))) { hideTimer = setTimeout(maybeHide, 1500); return; }
   bar.classList.add('hidden'); document.body.classList.add('hide-cursor');
   if (fe && bar.contains(fe)) fe.blur();
 }
@@ -928,6 +1229,7 @@ function start(fs) {
   ensureAudio(); keepAwake();
   if (fs) toggleFullscreen();
   document.body.classList.add('hide-cursor');
+  showCount();
   toast('H = Hilfe · Maus bewegen = Bedienleiste', 3000);
 }
 $('#startFs').addEventListener('click', e => { e.stopPropagation(); start(true); });
@@ -936,24 +1238,29 @@ $('#startWin').addEventListener('click', e => { e.stopPropagation(); start(false
 /* Tasten */
 window.addEventListener('keydown', e => {
   const tag = (e.target && e.target.tagName) || '';
-  if (tag === 'INPUT' && e.target.type === 'number') { if (e.key === 'Escape') e.target.blur(); return; }
+  if ((tag === 'INPUT' && e.target.type !== 'range' && e.target.type !== 'checkbox') || tag === 'SELECT' || tag === 'TEXTAREA') { if (e.key === 'Escape') e.target.blur(); return; }
+  if ($('#cueEdit').classList.contains('on')) { if (e.key === 'Escape') openCueEdit(false); return; }
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   const k = e.key;
   if (k === 'F5') e.preventDefault();               // Klicker-„Start“-Taste soll nicht neu laden
   if (!started) { if (k !== 'Tab') { e.preventDefault(); start(false); } return; }
-  if (k === 'Escape') { showHelp(false); return; }
+  if (k === 'Escape') { showHelp(false); openCueEdit(false); return; }
   if (k >= '1' && k <= '8') { setScene(+k); e.preventDefault(); return; }
   switch (k.toLowerCase()) {
     case ' ': case 'spacebar': e.preventDefault(); if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur(); tap(); break;
     case 'f': case 'b': case '.': toggleFreeze(); break;
-    case 'pagedown': case 'arrowright': e.preventDefault(); stepScene(1); break;
-    case 'pageup': case 'arrowleft': e.preventDefault(); stepScene(-1); break;
+    case 'pagedown': case 'arrowright': e.preventDefault(); cueRun.on ? cueStep(1) : stepScene(1); break;
+    case 'pageup': case 'arrowleft': e.preventDefault(); cueRun.on ? cueStep(-1) : stepScene(-1); break;
+    case 'l': startCue(!cueRun.on); break;
     case 't': setMode('takt'); break;
     case 'm': setMode('mikro'); break;
     case 'a': setMode('auto'); break;
     case 's': setStopptanz(!stoppOn); break;
     case 'h': showHelp(!$('#help').classList.contains('on')); break;
     case 'v': toggleFullscreen(); break;
+    case 'k': { const order = [0, 2, 3, 4, 6]; setMeter(order[(order.indexOf(S.meter || 0) + 1) % order.length]); toast('Taktart: ' + (S.meter ? (S.meter === 6 ? '6/8' : S.meter + '/4') : 'frei')); break; }
+    case 'z': S.showCount = !S.showCount; save(); updateUI(); showCount(); break;
+    case 'e': setOne(); break;
     case 'p': togglePic(); break;
     case '0': setTestbild(!testbild); break;
     case 'arrowup': e.preventDefault(); setBpm(S.bpm + (e.shiftKey ? 5 : 1)); break;
@@ -1027,9 +1334,11 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') {
 window.addEventListener('resize', resize);
 resize();
 updateUI();
+updateCueUI();
 requestAnimationFrame(frame);
 
-window.__pl = { setScene, setMode, setStopptanz, toggleFreeze, setBpm, triggerBeat, start, S, get quality() { return quality; }, get webgl() { return !!GL; } };
+window.__lm = () => lastMusical;
+window.__pl = { setScene, setMeter, setMode, setStopptanz, toggleFreeze, setBpm, triggerBeat, start, S, get quality() { return quality; }, get webgl() { return !!GL; } };
 })();
 </script>
 </body>
