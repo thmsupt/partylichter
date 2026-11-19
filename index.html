@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Partylichter</title>
+<meta name="description" content="Stimmungslichter für den Beamer – für Unterricht, Schulfeste und Partys.">
+<meta name="theme-color" content="#0a0a1a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/favicon.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Partylichter">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="referrer" content="no-referrer">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #fff; }
+  body.hide-cursor { cursor: none; }
+  canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+
+  /* Freeze */
+  #freeze { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2vh;
+    background: rgba(0,0,0,.25); opacity: 0; pointer-events: none; transition: opacity .4s ease; }
+  #freeze.on { opacity: 1; }
+  #freeze svg { width: min(42vh, 60vw); height: auto; filter: drop-shadow(0 0 3vh rgba(0,0,0,.6)); }
+  #freeze .sub { font-size: min(6vh, 8vw); font-weight: 800; text-shadow: 0 0 2vh rgba(0,0,0,.9); letter-spacing: .02em; }
+
+  /* Start */
+  #start { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.55); z-index: 30; }
+  #start .card { text-align: center; padding: 4vh 5vw; border-radius: 24px; background: rgba(12,12,24,.85); max-width: 760px; }
+  #start h1 { font-size: clamp(36px, 8vh, 84px); margin: 0 0 1vh; letter-spacing: .01em; }
+  #start p { font-size: clamp(16px, 2.6vh, 24px); margin: .6em 0; opacity: .9; }
+  #start .btns { display: flex; gap: 16px; justify-content: center; margin-top: 3vh; flex-wrap: wrap; }
+
+  button, .btn { font: inherit; color: #fff; background: rgba(255,255,255,.12); border: 2px solid rgba(255,255,255,.18); border-radius: 12px;
+    padding: 10px 16px; cursor: pointer; transition: background .15s, border-color .15s; }
+  button:hover { background: rgba(255,255,255,.22); }
+  button.active { background: #f5b301; border-color: #f5b301; color: #111; font-weight: 700; }
+  button.big { font-size: clamp(18px, 3vh, 28px); padding: 14px 28px; }
+  button.primary { background: #f5b301; border-color: #f5b301; color: #111; font-weight: 800; }
+
+  /* Bar */
+  #bar { position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 20; background: rgba(10,10,22,.86); backdrop-filter: blur(10px);
+    border-radius: 18px; padding: 12px; display: flex; flex-direction: column; gap: 10px; font-size: 16px;
+    transition: opacity .3s ease, transform .3s ease; }
+  #bar.hidden { opacity: 0; transform: translateY(24px); pointer-events: none; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .scenes button { flex: 1 1 100px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 6px; min-width: 92px; }
+  .scenes .ico { font-size: 26px; line-height: 1.1; }
+  .scenes .lbl { font-size: 14px; }
+  .scenes .key { font-size: 11px; opacity: .65; }
+  .scenes button.active .key { opacity: .8; }
+  .group { display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 12px; background: rgba(255,255,255,.06); }
+  .group .t { font-size: 13px; opacity: .75; margin-right: 4px; text-transform: uppercase; letter-spacing: .05em; }
+  #bpmVal { font-size: 22px; font-weight: 800; min-width: 3ch; text-align: right; }
+  input[type=range] { width: 140px; accent-color: #f5b301; }
+  input[type=number] { width: 56px; font: inherit; padding: 6px; border-radius: 8px; border: 1px solid rgba(255,255,255,.3); background: rgba(0,0,0,.4); color: #fff; }
+  label.chk { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  input[type=checkbox] { width: 20px; height: 20px; accent-color: #f5b301; }
+  .spacer { flex: 1; }
+  .small { font-size: 13px; opacity: .75; }
+
+  /* Help */
+  #help { position: fixed; inset: 0; z-index: 40; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,.6); }
+  #help.on { display: flex; }
+  #help .card { background: rgba(14,14,28,.96); border-radius: 22px; padding: 28px 34px; max-width: 820px; width: 92vw; max-height: 90vh; overflow: auto; }
+  #help h2 { margin: 0 0 12px; font-size: 30px; }
+  #help h3 { margin: 18px 0 6px; font-size: 20px; color: #f5b301; }
+  #help table { border-collapse: collapse; width: 100%; font-size: 18px; }
+  #help td { padding: 5px 8px; vertical-align: top; }
+  #help td:first-child { white-space: nowrap; width: 1%; }
+  kbd { display: inline-block; min-width: 1.6em; text-align: center; padding: 2px 8px; border-radius: 6px; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.3); font-family: inherit; font-weight: 700; }
+  #help p { font-size: 16px; line-height: 1.45; opacity: .9; }
+
+  #toast { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 50; background: rgba(10,10,22,.88); padding: 10px 18px; border-radius: 12px;
+    font-size: 18px; opacity: 0; transition: opacity .3s; pointer-events: none; max-width: 90vw; text-align: center; }
+  #toast.on { opacity: 1; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="freeze" aria-live="polite">
+  <svg viewBox="0 0 200 200" aria-hidden="true">
+    <polygon points="58.6,0 141.4,0 200,58.6 200,141.4 141.4,200 58.6,200 0,141.4 0,58.6" fill="#fff"/>
+    <polygon points="61.9,8 138.1,8 192,61.9 192,138.1 138.1,192 61.9,192 8,138.1 8,61.9" fill="#d62828"/>
+    <text x="100" y="118" text-anchor="middle" font-family="system-ui, Arial, sans-serif" font-size="50" font-weight="900" fill="#fff">STOPP</text>
+  </svg>
+  <div class="sub">Einfrieren!</div>
+</div>
+
+<div id="start">
+  <div class="card">
+    <h1>Partylichter</h1>
+    <p>Stimmungslichter für den Beamer</p>
+    <p class="small"><kbd>1</kbd>–<kbd>7</kbd> Szene · <kbd>Leertaste</kbd> Takt tippen · <kbd>F</kbd> Freeze · <kbd>H</kbd> Hilfe</p>
+    <div class="btns">
+      <button class="big primary" id="startFs">▶ Start im Vollbild</button>
+      <button class="big" id="startWin">Start im Fenster</button>
+    </div>
+  </div>
+</div>
+
+<div id="bar" class="hidden">
+  <div class="row scenes" id="scenes"></div>
+  <div class="row">
+    <div class="group">
+      <span class="t">Modus</span>
+      <button data-mode="takt" title="Taste T">🥁 Takt</button>
+      <button data-mode="mikro" title="Taste M">🎤 Mikrofon</button>
+      <button data-mode="auto" title="Taste A">🌙 Automatik</button>
+    </div>
+    <div class="group" id="grpTakt">
+      <span class="t">Tempo</span>
+      <button id="bpmDown" title="Pfeil runter">−</button>
+      <span id="bpmVal">100</span><span class="small">BPM</span>
+      <button id="bpmUp" title="Pfeil hoch">+</button>
+      <input type="range" id="bpmRange" min="40" max="200" step="1" aria-label="Tempo in BPM">
+      <button id="tapBtn" title="Leertaste">👆 Tippen</button>
+    </div>
+    <div class="group" id="grpMic">
+      <span class="t">Empfindlichkeit</span>
+      <input type="range" id="sens" min="1" max="10" step="1" aria-label="Mikrofon-Empfindlichkeit">
+      <span id="sensVal" class="small">5</span>
+    </div>
+  </div>
+  <div class="row">
+    <div class="group">
+      <button id="stoppBtn" title="Taste S">✋ Licht-Stopptanz: aus</button>
+      <span class="small">Stopp alle</span>
+      <input type="number" id="stoppMin" min="2" max="60" aria-label="Abstand von (Sekunden)">
+      <span class="small">bis</span>
+      <input type="number" id="stoppMax" min="3" max="90" aria-label="Abstand bis (Sekunden)">
+      <span class="small">s, Dauer</span>
+      <input type="number" id="stoppDauer" min="1" max="20" aria-label="Stopp-Dauer (Sekunden)">
+      <span class="small">s</span>
+      <label class="chk"><input type="checkbox" id="gong"> Gong</label>
+    </div>
+    <div class="spacer"></div>
+    <button id="installBtn" style="display:none" title="Als App auf diesem Gerät installieren">⬇ Als App installieren</button>
+    <button id="fsBtn" title="Taste V">⛶ Vollbild</button>
+    <button id="helpBtn" title="Taste H">❓ Hilfe</button>
+  </div>
+</div>
+
+<div id="help">
+  <div class="card">
+    <h2>Partylichter – Hilfe</h2>
+    <h3>Tasten</h3>
+    <table>
+      <tr><td><kbd>1</kbd> – <kbd>7</kbd></td><td>Szene wählen: Farbverlauf, Sternenhimmel, Discokugel, Scheinwerfer, Farb-Puls, Wellen, Lagerfeuer</td></tr>
+      <tr><td><kbd>→</kbd> <kbd>←</kbd></td><td>Nächste / vorige Szene</td></tr>
+      <tr><td><kbd>8</kbd> oder <kbd>F</kbd></td><td>Freeze: Bild einfrieren mit Stopp-Schild (nochmal drücken = weiter)</td></tr>
+      <tr><td><kbd>Leertaste</kbd></td><td>Takt mittippen (mind. 2×); schaltet auf Modus „Takt“</td></tr>
+      <tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>Tempo ±1 BPM (mit <kbd>Shift</kbd> ±5)</td></tr>
+      <tr><td><kbd>T</kbd> <kbd>M</kbd> <kbd>A</kbd></td><td>Modus: Takt · Mikrofon · Automatik</td></tr>
+      <tr><td><kbd>S</kbd></td><td>Licht-Stopptanz an/aus (friert in zufälligen Abständen von selbst ein)</td></tr>
+      <tr><td><kbd>V</kbd></td><td>Vollbild an/aus</td></tr>
+      <tr><td><kbd>H</kbd> / <kbd>Esc</kbd></td><td>Hilfe öffnen / schließen</td></tr>
+    </table>
+    <h3>Präsentations-Klicker</h3>
+    <p>Funktioniert ohne Einrichtung: <b>Weiter/Zurück</b> wechselt die Szene, die Taste <b>Bildschirm schwarz</b> (B oder Punkt) friert ein. Die Start-Taste (F5) lädt die Seite nicht neu.</p>
+    <h3>Bedienleiste</h3>
+    <p>Maus bewegen oder Bildschirm antippen – unten erscheint die Leiste. Nach 3 Sekunden ohne Bewegung verschwindet sie wieder.</p>
+    <h3>Modi</h3>
+    <p><b>Takt:</b> Lichter wechseln im eingestellten oder getippten Tempo.<br>
+       <b>Mikrofon:</b> Lichter reagieren auf Bass und Lautstärke im Raum (Browser fragt nach Freigabe).<br>
+       <b>Automatik:</b> ruhiger Ablauf ohne Musikbezug.</p>
+    <h3>Sicherheit</h3>
+    <p>Kein Stroboskop. Lichtwechsel sind fest auf höchstens 3 pro Sekunde begrenzt – auch bei schnellem Tempo oder lauter Musik. Helligkeit ändert sich nur weich, ohne harte Hell-Dunkel-Sprünge. Szenenwechsel werden immer überblendet, auch bei schnellem Tastendrücken. Alle Szenen sind automatisch nach den Blitz-Grenzwerten der WCAG 2.3.1 geprüft.</p>
+    <h3>Als App installieren</h3>
+    <p>Unter <b>thmsupt.github.io/partylichter</b> lässt sich Partylichter installieren: in Chrome/Edge über den Knopf „Als App installieren“ in der Leiste (oder das Symbol in der Adresszeile), auf dem iPad über Teilen → „Zum Home-Bildschirm“. Nach dem ersten Öffnen läuft die App auch ohne Internet.</p>
+    <h3>Datenschutz</h3>
+    <p>Partylichter sendet keine Daten und nutzt weder Cookies noch Tracking. Das Mikrofon wird nur auf diesem Gerät ausgewertet, nichts wird aufgenommen oder gespeichert. Gespeichert werden nur Szene, Tempo und Einstellungen – lokal im Browser. Die Seite wird über GitHub Pages bereitgestellt; GitHub verarbeitet beim Abruf technisch nötige Verbindungsdaten (z. B. IP-Adresse).</p>
+    <p style="text-align:right"><button id="helpClose" class="primary">Schließen</button></p>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+
+/* ---------- Einstellungen ---------- */
+const KEY = 'partylichter.v1';
+const S = { scene: 1, mode: 'takt', bpm: 100, sens: 5, stoppMin: 5, stoppMax: 20, stoppDauer: 4, gong: true };
+try { Object.assign(S, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) {}
+if (S.mode === 'mikro') S.mode = 'takt';            // Mikrofon braucht jedes Mal neue Freigabe
+if (!(S.scene >= 1 && S.scene <= 7)) S.scene = 1;
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+
+const SCENES = [
+  { n: 1, ico: '🌈', lbl: 'Farbverlauf' },
+  { n: 2, ico: '✨', lbl: 'Sternenhimmel' },
+  { n: 3, ico: '🪩', lbl: 'Discokugel' },
+  { n: 4, ico: '🔦', lbl: 'Scheinwerfer' },
+  { n: 5, ico: '💓', lbl: 'Farb-Puls' },
+  { n: 6, ico: '🌊', lbl: 'Wellen' },
+  { n: 7, ico: '🔥', lbl: 'Lagerfeuer' },
+  { n: 8, ico: '✋', lbl: 'Freeze' },
+];
+
+/* ---------- Canvas ---------- */
+const cv = $('#c'), mainCtx = cv.getContext('2d');
+let ctx = mainCtx;                                   // Szenen zeichnen immer in ctx
+const mk = () => { const c = document.createElement('canvas'); return [c, c.getContext('2d')]; };
+const [offA, ctxA] = mk(), [offB, ctxB] = mk(), [snap, ctxSnap] = mk();
+let W = 0, H = 0, DPR = 1;
+function resize() {
+  DPR = Math.min(window.devicePixelRatio || 1, 1.5);
+  W = cv.width = Math.max(1, Math.round(innerWidth * DPR));
+  H = cv.height = Math.max(1, Math.round(innerHeight * DPR));
+  for (const c of [offA, offB, snap]) { c.width = W; c.height = H; }
+  initScenes();
+}
+
+/* Überblendung zwischen Szenen: verhindert harte Hell-Dunkel-Sprünge.
+   Wird während einer Überblendung erneut gewechselt, blendet die App vom
+   aktuell sichtbaren Bild aus weiter – schnelles Tastendrücken erzeugt so kein Flackern. */
+const FADE_MS = 1500;
+let trans = null;                                    // { from: Szenennummer | 0 (= Standbild), t0 }
+function beginTransition(now) {
+  if (trans || frozen) { ctxSnap.drawImage(cv, 0, 0); trans = { from: 0, t0: now }; }
+  else trans = { from: S.scene, t0: now };
+}
+const hsl = (h, s, l, a = 1) => `hsla(${((h % 360) + 360) % 360},${s}%,${l}%,${a})`;
+const rnd = (a, b) => a + Math.random() * (b - a);
+
+/* ---------- Takt / Puls (mit Sicherheitsgrenze) ---------- */
+const MIN_GAP = 1000 / 3;          // max. 3 Lichtwechsel pro Sekunde
+let lastBeat = -1e9, env = 0, pulse = 0, beatCount = 0;
+let hue = rnd(0, 360), hueTarget = hue;
+let animT = 0;
+let rings = [];
+
+function triggerBeat(now, strength = 1) {
+  if (now - lastBeat < MIN_GAP) return;
+  lastBeat = now;
+  env = Math.max(env, strength);
+  beatCount++;
+  hueTarget += 40;                 // kleiner Farbschritt, keine Komplementär-Sprünge
+  if (S.scene === 5) rings.push({ t: now });
+}
+
+let nextBeat = 0;
+function taktTick(now) {
+  const iv = 60000 / S.bpm;
+  if (!nextBeat || now - nextBeat > 2000) nextBeat = now;
+  if (now >= nextBeat) {
+    triggerBeat(now);
+    while (nextBeat <= now) nextBeat += iv;
+  }
+}
+
+let nextAuto = 0;
+function autoTick(now) {
+  if (now >= nextAuto) { triggerBeat(now, 0.35); nextAuto = now + 3200; }
+}
+
+/* Tap-Tempo */
+let taps = [];
+function tap() {
+  const now = performance.now();
+  if (S.mode !== 'takt') setMode('takt');
+  if (taps.length && now - taps[taps.length - 1] > 2000) taps = [];
+  taps.push(now);
+  if (taps.length > 6) taps.shift();
+  if (taps.length >= 2) {
+    const iv = (taps[taps.length - 1] - taps[0]) / (taps.length - 1);
+    setBpm(Math.round(60000 / iv), true);
+  }
+  triggerBeat(now);
+  nextBeat = now + 60000 / S.bpm;
+}
+
+/* ---------- Audio: Mikrofon + Gong ---------- */
+let actx = null, analyser = null, micStream = null, fbuf = null, energyAvg = 0, level = 0;
+function ensureAudio() {
+  try {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === 'suspended') actx.resume().catch(() => {});
+  } catch (e) { actx = null; }
+}
+async function startMic() {
+  ensureAudio();
+  if (!actx || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return false;
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+    const src = actx.createMediaStreamSource(micStream);
+    analyser = actx.createAnalyser();
+    analyser.fftSize = 1024;
+    analyser.smoothingTimeConstant = 0.3;
+    src.connect(analyser);
+    fbuf = new Uint8Array(analyser.frequencyBinCount);
+    energyAvg = 0; level = 0;
+    return true;
+  } catch (e) { stopMic(); return false; }
+}
+function stopMic() {
+  if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+  analyser = null;
+}
+function micTick(now, dt) {
+  if (!analyser) return;
+  analyser.getByteFrequencyData(fbuf);
+  const binHz = actx.sampleRate / analyser.fftSize;
+  const lowEnd = Math.max(2, Math.round(160 / binHz));
+  let low = 0; for (let i = 1; i <= lowEnd; i++) low += fbuf[i];
+  low /= lowEnd * 255;
+  const half = fbuf.length >> 1;
+  let all = 0; for (let i = 1; i < half; i++) all += fbuf[i];
+  all /= (half - 1) * 255;
+  const gain = 0.5 + S.sens * 0.25;
+  low *= gain; all *= gain;
+  energyAvg += (low - energyAvg) * Math.min(1, dt / 600);
+  level += (Math.min(1, all * 1.6) - level) * Math.min(1, dt / 250);
+  const thr = 1.38 - S.sens * 0.02;
+  if (low > energyAvg * thr && low > 0.12) triggerBeat(now, Math.min(1, 0.5 + low));
+}
+
+function playGong() {
+  if (!S.gong) return;
+  ensureAudio();
+  if (!actx) return;
+  const t0 = actx.currentTime;
+  const out = actx.createGain();
+  out.gain.setValueAtTime(0.0001, t0);
+  out.gain.exponentialRampToValueAtTime(0.5, t0 + 0.02);
+  out.gain.exponentialRampToValueAtTime(0.0001, t0 + 3.2);
+  out.connect(actx.destination);
+  [[196, 1], [392, 0.6], [588, 0.35], [793, 0.25], [1180, 0.12]].forEach(([f, g]) => {
+    const o = actx.createOscillator(), gg = actx.createGain();
+    o.type = 'sine'; o.frequency.value = f; gg.gain.value = g;
+    o.connect(gg); gg.connect(out); o.start(t0); o.stop(t0 + 3.3);
+  });
+}
+
+/* ---------- Szenen ---------- */
+let stars = [], spots = [], embers = [], shoot = null, discoA = 0;
+function initScenes() {
+  const m = Math.min(W, H);
+  stars = Array.from({ length: 280 }, () => ({ x: Math.random() * W, y: Math.random() * H, r: rnd(0.6, 2.2) * DPR * (m / 900 + 0.4), ph: rnd(0, 6.28), sp: rnd(0.4, 1.6) }));
+  spots = Array.from({ length: 110 }, () => ({ lon: rnd(0, Math.PI * 2), lat: rnd(-0.85, 0.85), r: rnd(0.03, 0.065), hOff: Math.floor(rnd(0, 6)) * 60 }));
+  embers = [];
+}
+
+function sVerlauf(now, dt) {
+  const t = animT;
+  const g = ctx.createLinearGradient(0, 0, W, H);
+  g.addColorStop(0, hsl(hue, 70, 36 + 6 * pulse));
+  g.addColorStop(1, hsl(hue + 70, 70, 32 + 6 * pulse));
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  const R = Math.max(W, H) * 0.65;
+  [[0.3, 0.23, 150, 0], [0.21, 0.29, -60, 2]].forEach(([fx, fy, ho, ph]) => {
+    const x = W * (0.5 + 0.45 * Math.sin(t * fx + ph)), y = H * (0.5 + 0.45 * Math.cos(t * fy + ph));
+    const rg = ctx.createRadialGradient(x, y, 0, x, y, R);
+    rg.addColorStop(0, hsl(hue + ho, 75, 55, 0.5 + 0.12 * pulse));
+    rg.addColorStop(1, hsl(hue + ho, 75, 55, 0));
+    ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
+  });
+}
+
+function sSterne(now, dt) {
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#03050f'); g.addColorStop(1, '#0d1938');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  const nx = W * (0.5 + 0.3 * Math.sin(animT * 0.05)), ny = H * 0.4;
+  const neb = ctx.createRadialGradient(nx, ny, 0, nx, ny, Math.max(W, H) * 0.6);
+  neb.addColorStop(0, hsl(hue, 60, 45, 0.16 + 0.06 * pulse)); neb.addColorStop(1, hsl(hue, 60, 45, 0));
+  ctx.fillStyle = neb; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#fff';
+  for (const s of stars) {
+    const a = Math.min(1, 0.3 + 0.45 * (0.5 + 0.5 * Math.sin(animT * s.sp * 2 + s.ph)) + 0.2 * pulse);
+    ctx.globalAlpha = a;
+    ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 6.283); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  if (!shoot && Math.random() < dt / 7000) {
+    shoot = { x: rnd(0.1, 0.7) * W, y: rnd(0.05, 0.4) * H, vx: W * 0.5, vy: H * 0.25, life: 0 };
+  }
+  if (shoot) {
+    shoot.life += dt / 1000;
+    const p = shoot.life / 1.2;
+    if (p >= 1) shoot = null; else {
+      const x = shoot.x + shoot.vx * shoot.life, y = shoot.y + shoot.vy * shoot.life;
+      const lg = ctx.createLinearGradient(x, y, x - shoot.vx * 0.25, y - shoot.vy * 0.25);
+      const a = Math.sin(p * Math.PI) * 0.9;
+      lg.addColorStop(0, `rgba(255,255,255,${a})`); lg.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.strokeStyle = lg; ctx.lineWidth = 2.5 * DPR;
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - shoot.vx * 0.25, y - shoot.vy * 0.25); ctx.stroke();
+    }
+  }
+}
+
+function sDisco(now, dt, speed) {
+  ctx.fillStyle = '#06060c'; ctx.fillRect(0, 0, W, H);
+  discoA += dt / 1000 * (0.25 + 0.2 * speed);
+  const m = Math.min(W, H);
+  ctx.globalCompositeOperation = 'lighter';
+  for (const s of spots) {
+    const th = s.lon + discoA, c = Math.cos(th);
+    if (c < 0.05) continue;
+    const x = W / 2 + Math.sin(th) * W * 0.58;
+    const y = H * 0.55 + s.lat * H * 0.5;
+    const r = m * s.r * (0.6 + 0.5 * c) * (1 + 0.12 * pulse);
+    const rg = ctx.createRadialGradient(x, y, 0, x, y, r);
+    rg.addColorStop(0, hsl(hue + s.hOff, 85, 70, 0.85 * c));
+    rg.addColorStop(0.5, hsl(hue + s.hOff, 85, 60, 0.45 * c));
+    rg.addColorStop(1, hsl(hue + s.hOff, 85, 55, 0));
+    ctx.fillStyle = rg; ctx.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  // Kugel
+  const bx = W / 2, by = H * 0.13, br = m * 0.075;
+  ctx.strokeStyle = 'rgba(200,200,210,.5)'; ctx.lineWidth = 2 * DPR;
+  ctx.beginPath(); ctx.moveTo(bx, 0); ctx.lineTo(bx, by - br); ctx.stroke();
+  const bg = ctx.createRadialGradient(bx - br * 0.35, by - br * 0.35, br * 0.1, bx, by, br);
+  bg.addColorStop(0, '#f2f2f6'); bg.addColorStop(0.6, '#8a8c98'); bg.addColorStop(1, '#3a3b44');
+  ctx.fillStyle = bg; ctx.beginPath(); ctx.arc(bx, by, br, 0, 6.283); ctx.fill();
+  ctx.save(); ctx.beginPath(); ctx.arc(bx, by, br, 0, 6.283); ctx.clip();
+  ctx.strokeStyle = 'rgba(20,20,30,.45)'; ctx.lineWidth = 1 * DPR;
+  for (let i = -4; i <= 4; i++) { ctx.beginPath(); ctx.moveTo(bx - br, by + i * br / 4.5); ctx.lineTo(bx + br, by + i * br / 4.5); ctx.stroke(); }
+  for (let i = 0; i < 10; i++) {
+    const ph = ((i / 10) * Math.PI + discoA) % Math.PI;
+    const xx = bx - Math.cos(ph) * br;
+    ctx.beginPath(); ctx.moveTo(xx, by - br); ctx.lineTo(xx, by + br); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function sSpots(now, dt, speed) {
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#04040a'); g.addColorStop(1, '#0c0c18');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  const n = 4, len = Math.hypot(W, H) * 1.05, spread = 0.12;
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < n; i++) {
+    const ax = W * (i + 1) / (n + 1), ay = H * 1.02;
+    const ang = -Math.PI / 2 + Math.sin(animT * 0.8 + i * 1.9) * 0.6;
+    const col = hue + i * 70;
+    const lg = ctx.createLinearGradient(ax, ay, ax + Math.cos(ang) * len, ay + Math.sin(ang) * len);
+    lg.addColorStop(0, hsl(col, 90, 62, 0.7 + 0.15 * pulse));
+    lg.addColorStop(0.6, hsl(col, 90, 55, 0.2));
+    lg.addColorStop(1, hsl(col, 90, 50, 0));
+    ctx.fillStyle = lg;
+    ctx.beginPath(); ctx.moveTo(ax, ay);
+    ctx.lineTo(ax + Math.cos(ang - spread) * len, ay + Math.sin(ang - spread) * len);
+    ctx.lineTo(ax + Math.cos(ang + spread) * len, ay + Math.sin(ang + spread) * len);
+    ctx.closePath(); ctx.fill();
+    const fr = Math.min(W, H) * 0.12;
+    const rg = ctx.createRadialGradient(ax, ay, 0, ax, ay, fr);
+    rg.addColorStop(0, hsl(col, 90, 70, 0.6)); rg.addColorStop(1, hsl(col, 90, 60, 0));
+    ctx.fillStyle = rg; ctx.fillRect(ax - fr, ay - fr, fr * 2, fr * 2);
+  }
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+function sPuls(now) {
+  ctx.fillStyle = hsl(hue, 65, 40 + 8 * pulse); ctx.fillRect(0, 0, W, H);
+  const maxR = Math.hypot(W, H) * 0.6;
+  rings = rings.filter(r => now - r.t < 1800);
+  for (const r of rings) {
+    const age = (now - r.t) / 1800;
+    ctx.strokeStyle = hsl(hue + 140, 60, 52, 0.55 * (1 - age));
+    ctx.lineWidth = Math.min(W, H) * 0.05 * (1 - age) + 1;
+    ctx.beginPath(); ctx.arc(W / 2, H / 2, age * maxR + 1, 0, 6.283); ctx.stroke();
+  }
+  const cr = Math.min(W, H) * (0.18 + 0.03 * pulse);
+  const cg = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, cr);
+  cg.addColorStop(0, hsl(hue + 30, 70, 58, 0.7)); cg.addColorStop(1, hsl(hue + 30, 70, 50, 0));
+  ctx.fillStyle = cg; ctx.fillRect(W / 2 - cr, H / 2 - cr, cr * 2, cr * 2);
+}
+
+function sWellen(now) {
+  const bh = 200 + 25 * Math.sin(hue * Math.PI / 180);
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, hsl(bh, 60, 22)); g.addColorStop(1, hsl(bh + 20, 70, 7));
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  // Lichtstrahlen
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 5; i++) {
+    const x = W * (0.1 + i * 0.2) + Math.sin(animT * 0.3 + i) * W * 0.05;
+    const lg = ctx.createLinearGradient(x, 0, x + W * 0.05, H * 0.7);
+    lg.addColorStop(0, 'rgba(180,240,255,0.10)'); lg.addColorStop(1, 'rgba(180,240,255,0)');
+    ctx.fillStyle = lg;
+    ctx.beginPath(); ctx.moveTo(x - W * 0.03, 0); ctx.lineTo(x + W * 0.03, 0); ctx.lineTo(x + W * 0.12, H * 0.75); ctx.lineTo(x - W * 0.02, H * 0.75); ctx.closePath(); ctx.fill();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  const step = W / 64;
+  for (let i = 0; i < 5; i++) {
+    const baseY = H * (0.42 + i * 0.12);
+    const amp = H * 0.03 * (1 + 0.6 * pulse) * (1 + i * 0.2);
+    const f = 1.2 + i * 0.3, sp = 0.8 + i * 0.25;
+    ctx.beginPath(); ctx.moveTo(0, H);
+    for (let x = 0; x <= W + step; x += step) {
+      const y = baseY + Math.sin(x / W * 6.283 * f + animT * sp) * amp + Math.sin(x / W * 3.14 - animT * 0.4 + i) * amp * 0.5;
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(W, H); ctx.closePath();
+    ctx.fillStyle = hsl(bh + i * 6, 65, 24 + i * 7, 0.55);
+    ctx.fill();
+  }
+}
+
+function sFeuer(now, dt, speed) {
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+  const t = animT;
+  const flick = 0.035 * Math.sin(t * 2.6) + 0.025 * Math.sin(t * 4.2 + 1) + 0.015 * Math.sin(t * 6.6 + 2);
+  const cx = W / 2, cy = H * 1.02;
+  const R = H * 1.15 * (1 + flick + 0.05 * pulse);
+  const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);
+  g.addColorStop(0, 'rgba(255,190,80,0.95)');
+  g.addColorStop(0.3, 'rgba(240,110,30,0.6)');
+  g.addColorStop(0.65, 'rgba(120,35,10,0.25)');
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  ctx.globalCompositeOperation = 'lighter';
+  for (let k = 0; k < 5; k++) {
+    const x = cx + (k - 2) * W * 0.045 + Math.sin(t * 1.7 + k * 1.3) * W * 0.012;
+    const r = H * (0.22 - Math.abs(k - 2) * 0.04) * (1 + flick * 1.5);
+    const y = H * 0.98 - r * 0.35;
+    const fg = ctx.createRadialGradient(x, y, 0, x, y, r);
+    fg.addColorStop(0, 'rgba(255,230,140,0.55)'); fg.addColorStop(0.5, 'rgba(255,140,40,0.3)'); fg.addColorStop(1, 'rgba(255,90,20,0)');
+    ctx.fillStyle = fg; ctx.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  // Funken
+  const rate = 0.025 * (0.6 + speed * 0.6);
+  if (embers.length < 90 && Math.random() < dt * rate) {
+    embers.push({ x: cx + rnd(-0.08, 0.08) * W, y: H * 0.95, vx: rnd(-0.02, 0.02) * W, vy: -rnd(0.12, 0.28) * H, life: 0, max: rnd(2.5, 5) });
+  }
+  for (const e of embers) {
+    e.life += dt / 1000;
+    e.x += (e.vx + Math.sin(e.life * 3 + e.max) * W * 0.01) * dt / 1000;
+    e.y += e.vy * dt / 1000;
+    const a = Math.max(0, 1 - e.life / e.max);
+    ctx.fillStyle = `rgba(255,${150 + 80 * a | 0},60,${a * 0.9})`;
+    ctx.beginPath(); ctx.arc(e.x, e.y, 2.2 * DPR * (0.6 + a), 0, 6.283); ctx.fill();
+  }
+  embers = embers.filter(e => e.life < e.max);
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+const DRAW = { 1: sVerlauf, 2: sSterne, 3: sDisco, 4: sSpots, 5: sPuls, 6: sWellen, 7: sFeuer };
+
+function speed() {
+  if (S.mode === 'takt') return S.bpm / 100;
+  if (S.mode === 'mikro') return 0.6 + level * 1.2;
+  return 0.5;
+}
+
+/* ---------- Freeze & Licht-Stopptanz ---------- */
+let frozen = false, stoppOn = false, nextStop = 0, resumeAt = 0;
+function setFrozen(on) {
+  frozen = on;
+  $('#freeze').classList.toggle('on', on);
+  updateUI();
+}
+let lastFreezeToggle = -1e9;
+function toggleFreeze() {
+  const now = performance.now();
+  if (now - lastFreezeToggle < 600) return;          // Schutz: Stopp-Schild kann nicht flackern
+  lastFreezeToggle = now;
+  setFrozen(!frozen);
+  if (stoppOn) { resumeAt = 0; scheduleStop(performance.now()); }
+}
+function scheduleStop(now) {
+  const a = Math.min(S.stoppMin, S.stoppMax), b = Math.max(S.stoppMin, S.stoppMax);
+  nextStop = now + rnd(a, b) * 1000;
+}
+function setStopptanz(on) {
+  stoppOn = on;
+  if (on) { ensureAudio(); if (frozen) setFrozen(false); scheduleStop(performance.now()); toast('Licht-Stopptanz läuft – bei STOPP einfrieren!'); }
+  else { resumeAt = 0; if (frozen) setFrozen(false); toast('Licht-Stopptanz aus'); }
+  updateUI();
+}
+function stoppTick(now) {
+  if (!stoppOn) return;
+  if (resumeAt) {
+    if (now >= resumeAt) { resumeAt = 0; setFrozen(false); scheduleStop(now); }
+  } else if (!frozen && now >= nextStop) {
+    setFrozen(true); playGong(); resumeAt = now + S.stoppDauer * 1000;
+  }
+}
+
+/* ---------- Modus, Tempo ---------- */
+async function setMode(m) {
+  if (m === S.mode && (m !== 'mikro' || analyser)) return;
+  if (m === 'mikro') {
+    const ok = await startMic();
+    if (!ok) {
+      toast('Mikrofon nicht verfügbar – bitte im Browser freigeben oder thmsupt.github.io/partylichter öffnen. Modus bleibt „Takt“.', 6000);
+      m = 'takt';
+    }
+  } else stopMic();
+  S.mode = m; if (m !== 'mikro') save(); else { const k = S.mode; S.mode = 'takt'; save(); S.mode = k; }
+  nextBeat = 0; nextAuto = 0;
+  updateUI();
+}
+function setBpm(v, fromTap) {
+  S.bpm = Math.max(40, Math.min(200, Math.round(v)));
+  save(); updateUI();
+  if (fromTap) toast('Tempo: ' + S.bpm + ' BPM', 900);
+}
+function setScene(n) {
+  if (n === 8) { toggleFreeze(); return; }
+  if (n !== S.scene) {
+    beginTransition(performance.now());
+    if (n === 5) rings = [];
+    if (n === 7) embers = [];
+    if (n === 2) shoot = null;
+    S.scene = n; save();
+  }
+  if (frozen && !stoppOn) setFrozen(false);
+  updateUI();
+}
+function stepScene(d) { setScene(((S.scene - 1 + d + 7) % 7) + 1); }
+
+/* ---------- UI ---------- */
+const scenesEl = $('#scenes');
+SCENES.forEach(s => {
+  const b = document.createElement('button');
+  b.dataset.scene = s.n;
+  b.innerHTML = `<span class="ico">${s.ico}</span><span class="lbl">${s.lbl}</span><span class="key">Taste ${s.n}${s.n === 8 ? ' / F' : ''}</span>`;
+  b.addEventListener('click', () => setScene(s.n));
+  scenesEl.appendChild(b);
+});
+$$('[data-mode]').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+$('#bpmDown').addEventListener('click', () => setBpm(S.bpm - 1));
+$('#bpmUp').addEventListener('click', () => setBpm(S.bpm + 1));
+$('#bpmRange').addEventListener('input', e => setBpm(+e.target.value));
+$('#tapBtn').addEventListener('click', tap);
+$('#sens').addEventListener('input', e => { S.sens = +e.target.value; save(); updateUI(); });
+$('#stoppBtn').addEventListener('click', () => setStopptanz(!stoppOn));
+['stoppMin', 'stoppMax', 'stoppDauer'].forEach(id => $('#' + id).addEventListener('change', e => {
+  const el = e.target; let v = Math.round(+el.value || 0);
+  v = Math.max(+el.min, Math.min(+el.max, v)); S[id] = v; save(); updateUI();
+  if (stoppOn && !frozen) scheduleStop(performance.now());
+}));
+$('#gong').addEventListener('change', e => { S.gong = e.target.checked; save(); });
+$('#fsBtn').addEventListener('click', toggleFullscreen);
+$('#helpBtn').addEventListener('click', () => showHelp(true));
+$('#helpClose').addEventListener('click', () => showHelp(false));
+
+function updateUI() {
+  $$('#scenes button').forEach(b => {
+    const n = +b.dataset.scene;
+    b.classList.toggle('active', n === 8 ? frozen : n === S.scene);
+  });
+  $$('[data-mode]').forEach(b => b.classList.toggle('active', b.dataset.mode === S.mode));
+  $('#bpmVal').textContent = S.bpm;
+  $('#bpmRange').value = S.bpm;
+  $('#grpTakt').style.display = S.mode === 'takt' ? '' : 'none';
+  $('#grpMic').style.display = S.mode === 'mikro' ? '' : 'none';
+  $('#sens').value = S.sens; $('#sensVal').textContent = S.sens;
+  $('#stoppBtn').textContent = '✋ Licht-Stopptanz: ' + (stoppOn ? 'an' : 'aus');
+  $('#stoppBtn').classList.toggle('active', stoppOn);
+  $('#stoppMin').value = S.stoppMin; $('#stoppMax').value = S.stoppMax; $('#stoppDauer').value = S.stoppDauer;
+  $('#gong').checked = !!S.gong;
+}
+
+let toastTimer = 0;
+function toast(msg, ms = 2200) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('on');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('on'), ms);
+}
+
+/* Leiste ein-/ausblenden */
+const bar = $('#bar');
+let hideTimer = 0, overBar = false, started = false;
+function showBar() {
+  if (!started) return;
+  bar.classList.remove('hidden'); document.body.classList.remove('hide-cursor');
+  clearTimeout(hideTimer);
+  hideTimer = setTimeout(maybeHide, 3000);
+}
+function maybeHide() {
+  const fe = document.activeElement;
+  if (overBar || (fe && bar.contains(fe) && fe.tagName === 'INPUT' && fe.type === 'number')) { hideTimer = setTimeout(maybeHide, 1500); return; }
+  bar.classList.add('hidden'); document.body.classList.add('hide-cursor');
+  if (fe && bar.contains(fe)) fe.blur();
+}
+bar.addEventListener('pointerenter', () => { overBar = true; });
+bar.addEventListener('pointerleave', () => { overBar = false; });
+window.addEventListener('pointermove', showBar, { passive: true });
+window.addEventListener('pointerdown', showBar, { passive: true });
+
+/* Hilfe */
+function showHelp(on) { $('#help').classList.toggle('on', on); }
+
+/* Vollbild */
+function toggleFullscreen() {
+  try {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen().catch(() => toast('Vollbild hier nicht möglich – F11 drücken.'));
+  } catch (e) { toast('Vollbild hier nicht möglich – F11 drücken.'); }
+}
+
+/* Bildschirm wach halten */
+let wakeLock = null;
+async function keepAwake() {
+  try { if ('wakeLock' in navigator && !wakeLock) { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); } } catch (e) {}
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && started) keepAwake(); });
+
+/* Start */
+function start(fs) {
+  if (started) return;
+  started = true;
+  $('#start').style.display = 'none';
+  ensureAudio(); keepAwake();
+  if (fs) toggleFullscreen();
+  document.body.classList.add('hide-cursor');
+  toast('H = Hilfe · Maus bewegen = Bedienleiste', 3000);
+}
+$('#startFs').addEventListener('click', e => { e.stopPropagation(); start(true); });
+$('#startWin').addEventListener('click', e => { e.stopPropagation(); start(false); });
+
+/* Tasten */
+window.addEventListener('keydown', e => {
+  const tag = (e.target && e.target.tagName) || '';
+  if (tag === 'INPUT' && e.target.type === 'number') { if (e.key === 'Escape') e.target.blur(); return; }
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const k = e.key;
+  if (k === 'F5') e.preventDefault();               // Klicker-„Start“-Taste soll nicht neu laden
+  if (!started) { if (k !== 'Tab') { e.preventDefault(); start(false); } return; }
+  if (k === 'Escape') { showHelp(false); return; }
+  if (k >= '1' && k <= '8') { setScene(+k); e.preventDefault(); return; }
+  switch (k.toLowerCase()) {
+    case ' ': case 'spacebar': e.preventDefault(); if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur(); tap(); break;
+    case 'f': case 'b': case '.': toggleFreeze(); break;
+    case 'pagedown': case 'arrowright': e.preventDefault(); stepScene(1); break;
+    case 'pageup': case 'arrowleft': e.preventDefault(); stepScene(-1); break;
+    case 't': setMode('takt'); break;
+    case 'm': setMode('mikro'); break;
+    case 'a': setMode('auto'); break;
+    case 's': setStopptanz(!stoppOn); break;
+    case 'h': showHelp(!$('#help').classList.contains('on')); break;
+    case 'v': toggleFullscreen(); break;
+    case 'arrowup': e.preventDefault(); setBpm(S.bpm + (e.shiftKey ? 5 : 1)); break;
+    case 'arrowdown': e.preventDefault(); setBpm(S.bpm - (e.shiftKey ? 5 : 1)); break;
+  }
+});
+
+/* ---------- Hauptschleife ---------- */
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(100, Math.max(0, now - last)); last = now;
+  if (!frozen) {
+    if (S.mode === 'takt') taktTick(now);
+    else if (S.mode === 'mikro') micTick(now, dt);
+    else autoTick(now);
+    env *= Math.exp(-dt / 350);
+    pulse += (env - pulse) * Math.min(1, dt / 90);   // weicher Anstieg, kein harter Sprung
+    hue += (hueTarget - hue) * Math.min(1, dt / 450); // Farbwechsel immer überblendet
+    const sp = speed();
+    animT += dt / 1000 * sp;
+    if (trans && now - trans.t0 >= FADE_MS) trans = null;
+    if (!trans) {
+      ctx = mainCtx; DRAW[S.scene](now, dt, sp);
+    } else {
+      const k = (now - trans.t0) / FADE_MS, e = k * k * (3 - 2 * k);   // weich ein- und ausblenden
+      if (trans.from) { ctx = ctxA; DRAW[trans.from](now, dt, sp); }
+      ctx = ctxB; DRAW[S.scene](now, dt, sp);
+      ctx = mainCtx;
+      mainCtx.globalAlpha = 1; mainCtx.drawImage(trans.from ? offA : snap, 0, 0);
+      mainCtx.globalAlpha = e; mainCtx.drawImage(offB, 0, 0);
+      mainCtx.globalAlpha = 1;
+    }
+  }
+  stoppTick(now);
+  requestAnimationFrame(frame);
+}
+
+/* Installierbare App (nur auf der eigenen Adresse, nicht in eingebetteten Ansichten) */
+let installPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); installPrompt = e;
+  $('#installBtn').style.display = '';
+});
+$('#installBtn').addEventListener('click', async () => {
+  if (!installPrompt) return;
+  installPrompt.prompt();
+  try { await installPrompt.userChoice; } catch (e) {}
+  installPrompt = null; $('#installBtn').style.display = 'none';
+});
+window.addEventListener('appinstalled', () => { $('#installBtn').style.display = 'none'; toast('Partylichter ist installiert.'); });
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  try { navigator.serviceWorker.register('sw.js').catch(() => {}); } catch (e) {}
+}
+
+window.addEventListener('resize', resize);
+resize();
+updateUI();
+requestAnimationFrame(frame);
+
+window.__pl = { setScene, setMode, setStopptanz, toggleFreeze, setBpm, triggerBeat, start, S };
+})();
+</script>
+</body>
+</html>
