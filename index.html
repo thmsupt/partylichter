@@ -1157,6 +1157,8 @@ $('#ceClose').addEventListener('click', () => openCueEdit(false));
 $('#ceExport').addEventListener('click', () => {
   const L = curList();
   const data = JSON.stringify({ app: 'Partylichter', version: 1, ablauf: L }, null, 2);
+  let embedded = true; try { embedded = window.top !== window; } catch (e) {}
+  if (embedded) { $('#ceMsg').textContent = 'In dieser eingebetteten Ansicht kann nichts gespeichert werden. Export bitte in der App unter thmsupt.github.io/partylichter.'; return; }
   try {
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([data], { type: 'application/json' }));

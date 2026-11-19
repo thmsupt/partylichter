@@ -1,6 +1,6 @@
 // Offline-Speicher für Partylichter.
 // Bei jeder neuen Version VERSION erhöhen, dann holen sich alle Geräte die neuen Dateien.
-const VERSION = 'partylichter-v5';
+const VERSION = 'partylichter-v6';
 const FILES = [
   './',
   './index.html',
