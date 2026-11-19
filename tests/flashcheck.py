@@ -18,7 +18,7 @@ PROBE = r"""
   const st = { on: false, t: [], L: [], R: [], O: [] };
   function tick(t) {
     if (st.on) {
-      x.drawImage(document.getElementById('c'), 0, 0, 64, 36);
+      const g = document.getElementById('gl'); x.drawImage(g && g.style.display !== 'none' ? g : document.getElementById('c'), 0, 0, 64, 36);
       const d = x.getImageData(0, 0, 64, 36).data;
       const L = new Array(48).fill(0), R = new Array(48).fill(0);
       for (let py = 0; py < 36; py++) for (let px = 0; px < 64; px++) {

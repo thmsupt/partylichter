@@ -10,6 +10,9 @@ Stimmungslichter für den Beamer – für Unterricht, Schulfeste und Partys.
 - 3 Modi: Takt (tippen oder BPM einstellen), Mikrofon, Automatik
 - Freeze mit Stopp-Schild und automatischer **Licht-Stopptanz** mit Gong
 - Bedienung über Tasten, Präsentations-Klicker oder eine Leiste, die sich ausblendet
+- Lichteffekte über WebGL: Leuchten (Bloom), Dunst/Rauch, weiche Farbverläufe ohne Stufen
+- Beamer-Bild: Voreinstellungen „Heller/Dunkler Raum“, Regler für Helligkeit, Kontrast, Farbe, Schwarzwert, Leuchten, Dunst, dazu ein Testbild
+- Passt Auflösung und Effekte automatisch an langsame Geräte an
 - Installierbar als App und offline nutzbar
 
 ## Sicherheit
@@ -24,12 +27,14 @@ Keine Datenübertragung, keine Cookies, kein Tracking. Das Mikrofon wird nur lok
 
 | Taste | Funktion |
 |---|---|
-| 1–7, ← → | Szene wählen |
+| 1–7, ← →, Klicker | Szene wählen |
 | 8, F, B, . | Freeze |
 | Leertaste | Takt tippen |
 | ↑ ↓ | Tempo ±1 (Shift ±5) |
 | T / M / A | Takt / Mikrofon / Automatik |
 | S | Licht-Stopptanz an/aus |
+| P | Beamer-Bild-Einstellungen |
+| 0 | Testbild |
 | V | Vollbild |
 | H | Hilfe |
 
